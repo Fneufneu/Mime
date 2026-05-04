@@ -83,6 +83,28 @@ class DecodeTest extends TestCase
                     'foo' => 'bar',
                 ],
             ],
+            // Malformed unquoted value starting with '(' (RFC 2045 violation:
+            // '(' is a tspecial and only valid inside a quoted-string).
+            // Real-world example seen in the wild:
+            //   Content-Disposition: inline; filename=(BA_AE_Cobrand no icon.png
+            // The parent Horde_Mail_Rfc822 SkipLwsp interprets '(' as a CFWS
+            // comment opener and threw when no ')' was found, killing the
+            // whole MIME parse. Lenient content-param parsing must not
+            // throw, and should preserve the malformed value rather than
+            // drop the parameter — capture everything up to the next ';'.
+            [
+                ' filename=(BA_AE_Cobrand no icon.png',
+                [
+                    'filename' => '(BA_AE_Cobrand no icon.png',
+                ],
+            ],
+            [
+                'foo=bar; filename=(BA_AE_Cobrand no icon.png',
+                [
+                    'filename' => '(BA_AE_Cobrand no icon.png',
+                    'foo' => 'bar',
+                ],
+            ],
         ];
     }
 

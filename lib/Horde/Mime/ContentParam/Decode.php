@@ -69,7 +69,22 @@ class Horde_Mime_ContentParam_Decode extends Horde_Mail_Rfc822
             } else {
                 $this->_rfc822ParseMimeToken($value);
                 if (is_null($value)) {
-                    break;
+                    /* Lenient fallback: the value is neither a
+                     * quoted-string nor a valid mime-token (e.g. starts
+                     * with a tspecial like '('). Rather than dropping
+                     * the parameter entirely, capture everything up to
+                     * the next ';' as the raw value. Preserves real
+                     * intent on malformed-but-recoverable headers like
+                     *   filename=(BA_AE_Cobrand no icon.png
+                     * yielding filename='(BA_AE_Cobrand no icon.png'. */
+                    $start = $this->_ptr;
+                    while (($chr = $this->_curr()) !== false && $chr !== ';') {
+                        ++$this->_ptr;
+                    }
+                    $value = rtrim(substr($this->_data, $start, $this->_ptr - $start));
+                    if ($value === '') {
+                        break;
+                    }
                 }
             }
 
